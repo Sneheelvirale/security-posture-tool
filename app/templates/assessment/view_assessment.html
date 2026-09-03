@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+
+{% block title %}Assessment Summary - {{ assessment.organisation.name }} - SecurePosture{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="{{ url_for('assessment.list_assessments') }}">Assessments</a></li>
+                    <li class="breadcrumb-item active">{{ assessment.organisation.name }}</li>
+                </ol>
+            </nav>
+            <h1 class="h2 mb-1">{{ assessment.organisation.name }} — Assessment Summary</h1>
+            <p class="text-muted">Conducted by {{ assessment.assessor.username }} on {{ assessment.started_at.strftime('%Y-%m-%d') }}</p>
+        </div>
+        <div class="col-auto">
+            {% if assessment.status == 'completed' %}
+                <a href="{{ url_for('dashboard.view', assessment_id=assessment.id) }}" class="btn btn-primary me-2">
+                    <i class="bi bi-speedometer2 me-1"></i> View Dashboard
+                </a>
+                <a href="{{ url_for('report.view', assessment_id=assessment.id) }}" class="btn btn-outline-secondary">
+                    <i class="bi bi-printer me-1"></i> Printable Report
+                </a>
+            {% else %}
+                <a href="{{ url_for('assessment.conduct', assessment_id=assessment.id) }}" class="btn btn-primary">
+                    <i class="bi bi-pencil-square me-1"></i> Continue Assessment
+                </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Overview Stats -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0">
+                <div class="card-body text-center py-3">
+                    <small class="text-muted text-uppercase">Overall Score</small>
+                    <div class="display-6 fw-bold my-1 {% if assessment.overall_score < 2 %}text-danger{% elif assessment.overall_score < 3.5 %}text-warning{% else %}text-success{% endif %}">
+                        {{ "%.1f"|format(assessment.overall_score) }}
+                    </div>
+                    <small class="text-muted">out of 5.0</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0">
+                <div class="card-body text-center py-3">
+                    <small class="text-muted text-uppercase">Status</small>
+                    <div class="h3 fw-bold my-2">
+                        {% if assessment.status == 'completed' %}
+                            <span class="badge bg-success">Completed</span>
+                        {% else %}
+                            <span class="badge bg-primary">In Progress</span>
+                        {% endif %}
+                    </div>
+                    <small class="text-muted">{{ assessment.completion_percentage }}% complete</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0">
+                <div class="card-body text-center py-3">
+                    <small class="text-muted text-uppercase">Total Controls</small>
+                    <div class="display-6 fw-bold my-1 text-primary">{{ assessment.responses.count() }}</div>
+                    <small class="text-muted">NIST CSF mapped</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0">
+                <div class="card-body text-center py-3">
+                    <small class="text-muted text-uppercase">Identified Gaps</small>
+                    <div class="display-6 fw-bold my-1 text-danger">{{ assessment.gaps|length }}</div>
+                    <small class="text-muted">Score &lt; 3.0</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Control Responses by Function -->
+    <ul class="nav nav-tabs mb-4" id="viewTabs" role="tablist">
+        {% for function in functions %}
+        <li class="nav-item" role="presentation">
+            <button class="nav-link {% if loop.first %}active{% endif %}" id="view-tab-{{ function|lower }}"
+                    data-bs-toggle="tab" data-bs-target="#view-content-{{ function|lower }}" type="button" role="tab">
+                {{ function }}
+            </button>
+        </li>
+        {% endfor %}
+    </ul>
+
+    <div class="tab-content" id="viewTabsContent">
+        {% for function in functions %}
+        <div class="tab-pane fade {% if loop.first %}show active{% endif %}" id="view-content-{{ function|lower }}" role="tabpanel">
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 120px;">Reference</th>
+                                    <th>Title</th>
+                                    <th style="width: 130px;">Maturity Score</th>
+                                    <th style="width: 130px;">Evidence</th>
+                                    <th>Evidence Ref</th>
+                                    <th>Notes</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for response, control in responses_by_function[function] %}
+                                <tr>
+                                    <td><span class="badge bg-dark font-monospace">{{ control.control_ref }}</span></td>
+                                    <td>
+                                        <div class="fw-semibold">{{ control.title }}</div>
+                                        <small class="text-muted">{{ control.category }}</small>
+                                    </td>
+                                    <td>
+                                        <span class="badge score-badge score-{{ response.maturity_score }}">
+                                            {{ response.maturity_score }} - {{ response.maturity_label }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if response.evidence_status == 'full' %}
+                                            <span class="badge bg-success">Verified</span>
+                                        {% elif response.evidence_status == 'partial' %}
+                                            <span class="badge bg-warning text-dark">Partial</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">None</span>
+                                        {% endif %}
+                                    </td>
+                                    <td><small class="text-muted">{{ response.evidence_description or '—' }}</small></td>
+                                    <td><small class="text-muted">{{ response.notes or '—' }}</small></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

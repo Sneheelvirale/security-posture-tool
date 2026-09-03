@@ -1,0 +1,285 @@
+{% extends "base.html" %}
+
+{% block title %}Security Dashboard - {{ assessment.organisation.name }} - SecurePosture{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="row align-items-center mb-4">
+        <div class="col">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="{{ url_for('assessment.list_assessments') }}">Assessments</a></li>
+                    <li class="breadcrumb-item active">{{ assessment.organisation.name }} Dashboard</li>
+                </ol>
+            </nav>
+            <h1 class="h2 mb-0">{{ assessment.organisation.name }}</h1>
+            <p class="text-muted mb-0">Security Posture Assessment & Gap Analysis</p>
+        </div>
+        <div class="col-auto">
+            <div class="btn-group">
+                <a href="{{ url_for('dashboard.roadmap', assessment_id=assessment.id) }}" class="btn btn-outline-primary">
+                    <i class="bi bi-signpost-split me-1"></i> View Roadmap
+                </a>
+                <a href="{{ url_for('report.view', assessment_id=assessment.id) }}" class="btn btn-outline-secondary">
+                    <i class="bi bi-printer me-1"></i> Print Report
+                </a>
+                <a href="{{ url_for('report.methodology', assessment_id=assessment.id) }}" class="btn btn-outline-info">
+                    <i class="bi bi-question-circle me-1"></i> Methodology
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Score Overview Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body text-center d-flex flex-column justify-content-center">
+                    <small class="text-muted text-uppercase fw-bold">Overall Posture Score</small>
+                    <div class="display-4 fw-bold my-2 {% if assessment.overall_score < 2 %}text-danger{% elif assessment.overall_score < 3.5 %}text-warning{% else %}text-success{% endif %}">
+                        {{ "%.1f"|format(assessment.overall_score) }}
+                    </div>
+                    <small class="text-muted">Target: 3.5+ / 5.0</small>
+                </div>
+            </div>
+        </div>
+
+        {% for func, score in function_scores.items() %}
+        <div class="col">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body text-center">
+                    <small class="text-muted text-uppercase fw-bold">{{ func }}</small>
+                    <div class="h3 fw-bold my-2 {% if score < 2 %}text-danger{% elif score < 3.5 %}text-warning{% else %}text-success{% endif %}">
+                        {{ "%.1f"|format(score) }}
+                    </div>
+                    <div class="progress" style="height: 4px;">
+                        <div class="progress-bar {% if score < 2 %}bg-danger{% elif score < 3.5 %}bg-warning{% else %}bg-success{% endif %}"
+                             style="width: {{ (score / 5.0) * 100 }}%;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Charts Row -->
+    <div class="row g-4 mb-4">
+        <!-- Radar Chart: NIST Functions -->
+        <div class="col-lg-6">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-header bg-white py-3">
+                    <h5 class="mb-0 fw-semibold">NIST CSF Function Profile</h5>
+                    <small class="text-muted">Maturity comparison across core functions</small>
+                </div>
+                <div class="card-body d-flex align-items-center justify-content-center">
+                    <div style="width: 100%; max-width: 450px; height: 350px;">
+                        <canvas id="radarChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bar Chart: Maturity Distribution -->
+        <div class="col-lg-6">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-header bg-white py-3">
+                    <h5 class="mb-0 fw-semibold">Maturity Level Distribution</h5>
+                    <small class="text-muted">Count of controls at each maturity level (0-5)</small>
+                </div>
+                <div class="card-body d-flex align-items-center justify-content-center">
+                    <div style="width: 100%; height: 350px;">
+                        <canvas id="barChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Evidence & Gap Distribution Row -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-4">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-header bg-white py-3">
+                    <h5 class="mb-0 fw-semibold">Evidence Status</h5>
+                    <small class="text-muted">Verification level across all controls</small>
+                </div>
+                <div class="card-body d-flex align-items-center justify-content-center">
+                    <div style="width: 100%; max-width: 280px; height: 280px;">
+                        <canvas id="evidenceChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Critical Gaps List -->
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="mb-0 fw-semibold">Top Priority Gaps</h5>
+                        <small class="text-muted">Controls requiring immediate attention</small>
+                    </div>
+                    <span class="badge bg-danger">{{ gaps|length }} Total Gaps</span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive" style="max-height: 320px; overflow-y: auto;">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light sticky-top">
+                                <tr>
+                                    <th>Control</th>
+                                    <th>Severity</th>
+                                    <th>Score</th>
+                                    <th>Effort</th>
+                                    <th>Notes</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for gap in gaps[:8] %}
+                                <tr>
+                                    <td>
+                                        <span class="badge bg-dark font-monospace me-1">{{ gap.control.control_ref }}</span>
+                                        <small class="fw-semibold">{{ gap.control.title }}</small>
+                                    </td>
+                                    <td>
+                                        {% if gap.severity == 'Critical' %}
+                                            <span class="badge bg-danger">Critical</span>
+                                        {% elif gap.severity == 'High' %}
+                                            <span class="badge bg-warning text-dark">High</span>
+                                        {% else %}
+                                            <span class="badge bg-info text-dark">Medium</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge score-badge score-{{ gap.current_score }}">{{ gap.current_score }}/5</span>
+                                    </td>
+                                    <td>
+                                        <small class="badge {% if gap.control.effort_band == 'Low' %}bg-success-subtle text-success{% elif gap.control.effort_band == 'Medium' %}bg-warning-subtle text-warning{% else %}bg-danger-subtle text-danger{% endif %}">
+                                            {{ gap.control.effort_band }}
+                                        </small>
+                                    </td>
+                                    <td><small class="text-muted">{{ gap.response.notes or 'No notes' }}</small></td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="5" class="text-center py-4 text-muted">No critical gaps identified! Great posture!</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const assessmentId = {{ assessment.id }};
+
+    fetch(`/dashboard/${assessmentId}/data`)
+        .then(response => response.json())
+        .then(data => {
+            // 1. Radar Chart: NIST Function Scores
+            const radarCtx = document.getElementById('radarChart').getContext('2d');
+            new Chart(radarCtx, {
+                type: 'radar',
+                data: {
+                    labels: data.radar.labels,
+                    datasets: [
+                        {
+                            label: 'Current Maturity',
+                            data: data.radar.values,
+                            backgroundColor: 'rgba(233, 69, 96, 0.2)',
+                            borderColor: '#e94560',
+                            borderWidth: 2,
+                            pointBackgroundColor: '#e94560'
+                        },
+                        {
+                            label: 'Target (3.5)',
+                            data: [3.5, 3.5, 3.5, 3.5, 3.5],
+                            borderColor: 'rgba(83, 166, 83, 0.7)',
+                            borderDash: [5, 5],
+                            borderWidth: 1.5,
+                            pointRadius: 0,
+                            fill: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            min: 0,
+                            max: 5,
+                            ticks: { stepSize: 1 }
+                        }
+                    }
+                }
+            });
+
+            // 2. Bar Chart: Maturity Level Distribution
+            const barCtx = document.getElementById('barChart').getContext('2d');
+            new Chart(barCtx, {
+                type: 'bar',
+                data: {
+                    labels: data.maturity.labels,
+                    datasets: [{
+                        label: 'Number of Controls',
+                        data: data.maturity.values,
+                        backgroundColor: [
+                            '#e94560', // Level 0: Red
+                            '#ff6b6b', // Level 1: Light red
+                            '#feca57', // Level 2: Amber
+                            '#48dbfb', // Level 3: Light blue
+                            '#1dd1a1', // Level 4: Teal
+                            '#10ac84'  // Level 5: Green
+                        ],
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { stepSize: 2 }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+
+            // 3. Doughnut Chart: Evidence Status
+            const evidenceCtx = document.getElementById('evidenceChart').getContext('2d');
+            new Chart(evidenceCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: data.evidence.labels,
+                    datasets: [{
+                        data: data.evidence.values,
+                        backgroundColor: ['#e94560', '#feca57', '#1dd1a1'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    }
+                }
+            });
+        })
+        .catch(err => console.error('Error loading chart data:', err));
+});
+</script>
+{% endblock %}

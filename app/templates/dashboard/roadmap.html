@@ -1,0 +1,212 @@
+{% extends "base.html" %}
+
+{% block title %}Improvement Roadmap - {{ assessment.organisation.name }} - SecurePosture{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="row align-items-center mb-4">
+        <div class="col">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard.view', assessment_id=assessment.id) }}">Dashboard</a></li>
+                    <li class="breadcrumb-item active">Improvement Roadmap</li>
+                </ol>
+            </nav>
+            <h1 class="h2 mb-0">Prioritised Remediation Roadmap</h1>
+            <p class="text-muted mb-0">{{ assessment.organisation.name }} • Phased security improvement plan</p>
+        </div>
+        <div class="col-auto">
+            <a href="{{ url_for('report.view', assessment_id=assessment.id) }}" class="btn btn-outline-secondary">
+                <i class="bi bi-printer me-1"></i> Print Full Report
+            </a>
+        </div>
+    </div>
+
+    <!-- Phase 1: Quick Wins (0-2 Weeks) -->
+    <div class="card shadow-sm border-0 mb-4 border-start border-4 border-success">
+        <div class="card-header bg-white py-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h5 class="mb-0 text-success fw-bold"><i class="bi bi-lightning-charge me-2"></i> Phase 1: Quick Wins</h5>
+                    <small class="text-muted">High-impact, low-effort controls (Weeks 1-2)</small>
+                </div>
+                <span class="badge bg-success">{{ quick_wins|length }} Items</span>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            {% if quick_wins %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 120px;">Reference</th>
+                            <th>Control Title</th>
+                            <th>Current Score</th>
+                            <th>Guidance & Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in quick_wins %}
+                        <tr>
+                            <td><span class="badge bg-dark font-monospace">{{ item.control.control_ref }}</span></td>
+                            <td>
+                                <div class="fw-semibold">{{ item.control.title }}</div>
+                                <small class="text-muted">{{ item.control.category }}</small>
+                            </td>
+                            <td>
+                                <span class="badge score-badge score-{{ item.gap.current_score }}">
+                                    {{ item.gap.current_score }}/5
+                                </span>
+                            </td>
+                            <td><small class="text-muted">{{ item.control.guidance }}</small></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="p-4 text-center text-muted">No low-effort quick wins identified. Proceed to Short-Term priorities.</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Phase 2: Short-Term (3-8 Weeks) -->
+    <div class="card shadow-sm border-0 mb-4 border-start border-4 border-primary">
+        <div class="card-header bg-white py-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h5 class="mb-0 text-primary fw-bold"><i class="bi bi-calendar-range me-2"></i> Phase 2: Short-Term Remediation</h5>
+                    <small class="text-muted">Foundational policy and technical controls (Weeks 3-8)</small>
+                </div>
+                <span class="badge bg-primary">{{ short_term|length }} Items</span>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            {% if short_term %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 120px;">Reference</th>
+                            <th>Control Title</th>
+                            <th>Severity</th>
+                            <th>Guidance & Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in short_term %}
+                        <tr>
+                            <td><span class="badge bg-dark font-monospace">{{ item.control.control_ref }}</span></td>
+                            <td>
+                                <div class="fw-semibold">{{ item.control.title }}</div>
+                                <small class="text-muted">{{ item.control.category }}</small>
+                            </td>
+                            <td>
+                                {% if item.gap.severity == 'Critical' %}
+                                    <span class="badge bg-danger">Critical</span>
+                                {% else %}
+                                    <span class="badge bg-warning text-dark">High</span>
+                                {% endif %}
+                            </td>
+                            <td><small class="text-muted">{{ item.control.guidance }}</small></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="p-4 text-center text-muted">No short-term items identified.</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Phase 3: Medium-Term (2-6 Months) -->
+    <div class="card shadow-sm border-0 mb-4 border-start border-4 border-warning">
+        <div class="card-header bg-white py-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h5 class="mb-0 text-warning fw-bold"><i class="bi bi-hourglass-split me-2"></i> Phase 3: Medium-Term Enhancements</h5>
+                    <small class="text-muted">Process formalisation, tool rollouts, monitoring (Months 2-6)</small>
+                </div>
+                <span class="badge bg-warning text-dark">{{ medium_term|length }} Items</span>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            {% if medium_term %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 120px;">Reference</th>
+                            <th>Control Title</th>
+                            <th>Effort</th>
+                            <th>Guidance & Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in medium_term %}
+                        <tr>
+                            <td><span class="badge bg-dark font-monospace">{{ item.control.control_ref }}</span></td>
+                            <td>
+                                <div class="fw-semibold">{{ item.control.title }}</div>
+                                <small class="text-muted">{{ item.control.category }}</small>
+                            </td>
+                            <td><span class="badge bg-warning-subtle text-warning">Medium Effort</span></td>
+                            <td><small class="text-muted">{{ item.control.guidance }}</small></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="p-4 text-center text-muted">No medium-term items identified.</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Phase 4: Long-Term (6-12 Months) -->
+    <div class="card shadow-sm border-0 mb-4 border-start border-4 border-secondary">
+        <div class="card-header bg-white py-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h5 class="mb-0 text-secondary fw-bold"><i class="bi bi-shield-check me-2"></i> Phase 4: Long-Term Maturity</h5>
+                    <small class="text-muted">Continuous improvement, automation, audit readiness (Months 6-12)</small>
+                </div>
+                <span class="badge bg-secondary">{{ long_term|length }} Items</span>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            {% if long_term %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 120px;">Reference</th>
+                            <th>Control Title</th>
+                            <th>Effort</th>
+                            <th>Guidance & Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in long_term %}
+                        <tr>
+                            <td><span class="badge bg-dark font-monospace">{{ item.control.control_ref }}</span></td>
+                            <td>
+                                <div class="fw-semibold">{{ item.control.title }}</div>
+                                <small class="text-muted">{{ item.control.category }}</small>
+                            </td>
+                            <td><span class="badge bg-danger-subtle text-danger">High Effort</span></td>
+                            <td><small class="text-muted">{{ item.control.guidance }}</small></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="p-4 text-center text-muted">No long-term items identified.</div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

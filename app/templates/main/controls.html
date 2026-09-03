@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block title %}NIST CSF Controls - SecurePosture{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="h2 mb-1">NIST CSF Security Controls</h1>
+            <p class="text-muted">45+ controls mapped across the 5 NIST Cybersecurity Framework functions</p>
+        </div>
+    </div>
+
+    <!-- Function Tabs -->
+    <ul class="nav nav-pills mb-4" id="functionTabs" role="tablist">
+        {% for function in functions %}
+        <li class="nav-item" role="presentation">
+            <button class="nav-link {% if loop.first %}active{% endif %}" id="{{ function|lower }}-tab"
+                    data-bs-toggle="pill" data-bs-target="#{{ function|lower }}" type="button" role="tab">
+                {{ function }} ({{ controls_by_function[function]|length }})
+            </button>
+        </li>
+        {% endfor %}
+    </ul>
+
+    <!-- Tab Content -->
+    <div class="tab-content" id="functionTabsContent">
+        {% for function in functions %}
+        <div class="tab-pane fade {% if loop.first %}show active{% endif %}" id="{{ function|lower }}" role="tabpanel">
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 120px;">Reference</th>
+                                    <th style="width: 200px;">Category</th>
+                                    <th>Title & Description</th>
+                                    <th style="width: 100px;">Effort</th>
+                                    <th style="width: 80px;">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for control in controls_by_function[function] %}
+                                <tr>
+                                    <td><span class="badge bg-dark font-monospace">{{ control.control_ref }}</span></td>
+                                    <td><small class="text-muted">{{ control.category }}</small></td>
+                                    <td>
+                                        <div class="fw-semibold">{{ control.title }}</div>
+                                        <small class="text-muted">{{ control.description[:120] }}...</small>
+                                    </td>
+                                    <td>
+                                        {% if control.effort_band == 'Low' %}
+                                            <span class="badge bg-success-subtle text-success">Low</span>
+                                        {% elif control.effort_band == 'Medium' %}
+                                            <span class="badge bg-warning-subtle text-warning">Medium</span>
+                                        {% else %}
+                                            <span class="badge bg-danger-subtle text-danger">High</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('main.control_detail', control_id=control.id) }}" class="btn btn-sm btn-outline-secondary">
+                                            <i class="bi bi-info-circle"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

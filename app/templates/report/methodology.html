@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+
+{% block title %}Scoring Methodology - SecurePosture{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-9">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-3">
+                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard.view', assessment_id=assessment.id) }}">Dashboard</a></li>
+                    <li class="breadcrumb-item active">Scoring Methodology</li>
+                </ol>
+            </nav>
+
+            <h1 class="h2 mb-3">Transparent Scoring Methodology</h1>
+            <p class="lead text-muted mb-4">How maturity scores, function ratings, and gap priorities are calculated.</p>
+
+            <!-- 1. Maturity Scale -->
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-white py-3">
+                    <h5 class="mb-0 fw-semibold">1. Six-Tier Maturity Scale (0 - 5)</h5>
+                </div>
+                <div class="card-body">
+                    <p class="small text-muted">Each of the 45+ controls is assigned a maturity score from 0 to 5 based on verifiable organizational implementation:</p>
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-sm align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 80px;">Score</th>
+                                    <th style="width: 150px;">Tier Label</th>
+                                    <th>Description & Criteria</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for score, info in maturity_levels.items() %}
+                                <tr>
+                                    <td class="text-center"><span class="badge score-badge score-{{ score }} fs-6">{{ score }}</span></td>
+                                    <td class="fw-semibold">{{ info.label }}</td>
+                                    <td class="small text-muted">{{ info.description }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Evidence Verification -->
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-white py-3">
+                    <h5 class="mb-0 fw-semibold">2. Evidence Verification Register</h5>
+                </div>
+                <div class="card-body">
+                    <p class="small text-muted">To avoid self-reporting bias, controls require supporting evidence references:</p>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <div class="border rounded p-3 text-center h-100">
+                                <span class="badge bg-secondary mb-2">None Provided</span>
+                                <h6>Level 0 Verification</h6>
+                                <p class="small text-muted mb-0">No documentation, logs, or policies supplied. Score capped at 1.</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="border rounded p-3 text-center h-100">
+                                <span class="badge bg-warning text-dark mb-2">Partially Verified</span>
+                                <h6>Level 1-2 Verification</h6>
+                                <p class="small text-muted mb-0">Draft policies, verbal confirmation, or partial log samples provided.</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="border rounded p-3 text-center h-100">
+                                <span class="badge bg-success mb-2">Fully Verified</span>
+                                <h6>Level 3-5 Verification</h6>
+                                <p class="small text-muted mb-0">Approved policies, audit logs, tool configurations verified by assessor.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. Overall Score Calculation -->
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-white py-3">
+                    <h5 class="mb-0 fw-semibold">3. Formula & Aggregation</h5>
+                </div>
+                <div class="card-body">
+                    <h6>Function Score Formula</h6>
+                    <div class="bg-light p-3 rounded font-monospace small mb-3">
+                        Function Score = ( Sum of Control Scores in Function ) / ( Total Controls in Function )
+                    </div>
+
+                    <h6>Overall Posture Score Formula</h6>
+                    <div class="bg-light p-3 rounded font-monospace small mb-3">
+                        Overall Score = ( Sum of all 5 Function Scores ) / 5.0
+                    </div>
+
+                    <p class="small text-muted mb-0">
+                        Equal weighting is applied across all five NIST CSF functions (Identify, Protect, Detect, Respond, Recover) ensuring balanced security coverage rather than over-focusing solely on technical protection controls.
+                    </p>
+                </div>
+            </div>
+
+            <!-- 4. Effort Bands -->
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-white py-3">
+                    <h5 class="mb-0 fw-semibold">4. Effort Bands & Remediation Prioritisation</h5>
+                </div>
+                <div class="card-body">
+                    <p class="small text-muted">Gaps are categorised into effort bands to produce practical improvement roadmaps for small organisations with limited budgets:</p>
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-sm align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Effort Band</th>
+                                    <th>Typical Timeline</th>
+                                    <th>Characteristics</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for band, info in effort_bands.items() %}
+                                <tr>
+                                    <td class="fw-semibold">{{ band }}</td>
+                                    <td>{{ info.weeks }} weeks</td>
+                                    <td class="small text-muted">{{ info.description }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

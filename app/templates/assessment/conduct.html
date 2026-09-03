@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+
+{% block title %}Conduct Assessment - {{ assessment.organisation.name }} - SecurePosture{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Top Header Bar -->
+    <div class="row align-items-center mb-4">
+        <div class="col">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="{{ url_for('assessment.list_assessments') }}">Assessments</a></li>
+                    <li class="breadcrumb-item active">{{ assessment.organisation.name }}</li>
+                </ol>
+            </nav>
+            <h1 class="h3 mb-0">Assessing: {{ assessment.organisation.name }}</h1>
+            <small class="text-muted">{{ assessment.organisation.industry }} • {{ assessment.organisation.size }}</small>
+        </div>
+        <div class="col-auto">
+            <div class="d-flex align-items-center gap-3">
+                <div class="text-end">
+                    <small class="text-muted d-block">Progress</small>
+                    <span class="fw-bold fs-5" id="progress-text">{{ assessment.completion_percentage }}%</span>
+                </div>
+                <div class="progress" style="width: 120px; height: 10px;">
+                    <div class="progress-bar" id="progress-bar" role="progressbar" style="width: {{ assessment.completion_percentage }}%;"></div>
+                </div>
+                <form action="{{ url_for('assessment.complete_assessment', assessment_id=assessment.id) }}" method="POST" class="d-inline">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-success" data-confirm="Are you sure you want to complete this assessment? You won't be able to edit responses afterward.">
+                        <i class="bi bi-check2-circle me-1"></i> Complete Assessment
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Function Tabs -->
+    <ul class="nav nav-tabs mb-4" id="conductTabs" role="tablist">
+        {% for function in functions %}
+        <li class="nav-item" role="presentation">
+            <button class="nav-link {% if loop.first %}active{% endif %}" id="tab-{{ function|lower }}"
+                    data-bs-toggle="tab" data-bs-target="#content-{{ function|lower }}" type="button" role="tab">
+                {{ function }}
+                <span class="badge bg-secondary-subtle text-secondary ms-1">{{ responses_by_function[function]|length }}</span>
+            </button>
+        </li>
+        {% endfor %}
+    </ul>
+
+    <!-- Tab Content -->
+    <div class="tab-content" id="conductTabsContent">
+        {% for function in functions %}
+        <div class="tab-pane fade {% if loop.first %}show active{% endif %}" id="content-{{ function|lower }}" role="tabpanel">
+            <div class="row g-4">
+                {% for response, control in responses_by_function[function] %}
+                <div class="col-12">
+                    <div class="card shadow-sm border-0 control-card" id="card-{{ response.id }}">
+                        <div class="card-header bg-white py-3">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <span class="badge bg-dark font-monospace me-2">{{ control.control_ref }}</span>
+                                    <span class="fw-semibold">{{ control.title }}</span>
+                                </div>
+                                <div>
+                                    <span class="badge {% if control.effort_band == 'Low' %}bg-success-subtle text-success{% elif control.effort_band == 'Medium' %}bg-warning-subtle text-warning{% else %}bg-danger-subtle text-danger{% endif %}">
+                                        {{ control.effort_band }} Effort
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <!-- Control Description and Guidance -->
+                            <p class="text-muted small mb-2">{{ control.description }}</p>
+                            <div class="alert alert-light border py-2 px-3 mb-3">
+                                <small class="text-muted"><strong>Guidance:</strong> {{ control.guidance }}</small>
+                            </div>
+
+                            <form class="response-form" data-response-id="{{ response.id }}">
+                                <div class="row g-3 align-items-end">
+                                    <!-- Maturity Score (0-5) -->
+                                    <div class="col-md-3">
+                                        <label class="form-label small fw-bold">Maturity Score</label>
+                                        <select class="form-select form-select-sm maturity-select" name="maturity_score">
+                                            <option value="0" {% if response.maturity_score == 0 %}selected{% endif %}>0 - Not Implemented</option>
+                                            <option value="1" {% if response.maturity_score == 1 %}selected{% endif %}>1 - Initial / Ad-hoc</option>
+                                            <option value="2" {% if response.maturity_score == 2 %}selected{% endif %}>2 - Developing</option>
+                                            <option value="3" {% if response.maturity_score == 3 %}selected{% endif %}>3 - Defined / Documented</option>
+                                            <option value="4" {% if response.maturity_score == 4 %}selected{% endif %}>4 - Managed / Monitored</option>
+                                            <option value="5" {% if response.maturity_score == 5 %}selected{% endif %}>5 - Optimising</option>
+                                        </select>
+                                    </div>
+
+                                    <!-- Evidence Status -->
+                                    <div class="col-md-3">
+                                        <label class="form-label small fw-bold">Evidence Status</label>
+                                        <select class="form-select form-select-sm evidence-select" name="evidence_status">
+                                            <option value="none" {% if response.evidence_status == 'none' %}selected{% endif %}>None Provided</option>
+                                            <option value="partial" {% if response.evidence_status == 'partial' %}selected{% endif %}>Partially Verified</option>
+                                            <option value="full" {% if response.evidence_status == 'full' %}selected{% endif %}>Fully Verified</option>
+                                        </select>
+                                    </div>
+
+                                    <!-- Evidence Description -->
+                                    <div class="col-md-3">
+                                        <label class="form-label small fw-bold">Evidence Reference</label>
+                                        <input type="text" class="form-control form-control-sm" name="evidence_description"
+                                               value="{{ response.evidence_description or '' }}"
+                                               placeholder="e.g., DOC-01: Password Policy v1.2">
+                                    </div>
+
+                                    <!-- Notes -->
+                                    <div class="col-md-3">
+                                        <label class="form-label small fw-bold">Assessor Notes</label>
+                                        <input type="text" class="form-control form-control-sm" name="notes"
+                                               value="{{ response.notes or '' }}"
+                                               placeholder="e.g., Missing MFA on admin accounts">
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const csrfToken = '{{ csrf_token() }}';
+    const assessmentId = {{ assessment.id }};
+
+    // Auto-save on form input change
+    document.querySelectorAll('.response-form').forEach(form => {
+        const responseId = form.dataset.responseId;
+
+        form.querySelectorAll('select, input').forEach(input => {
+            input.addEventListener('change', function() {
+                saveResponse(responseId, form);
+            });
+        });
+    });
+
+    function saveResponse(responseId, form) {
+        const data = {
+            maturity_score: form.querySelector('[name="maturity_score"]').value,
+            evidence_status: form.querySelector('[name="evidence_select"]')?.value || form.querySelector('[name="evidence_status"]').value,
+            evidence_description: form.querySelector('[name="evidence_description"]').value,
+            notes: form.querySelector('[name="notes"]').value
+        };
+
+        const card = document.getElementById(`card-${responseId}`);
+        card.style.opacity = '0.7';
+
+        fetch(`/assessment/${assessmentId}/update-response/${responseId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(result => {
+            card.style.opacity = '1';
+            if (result.success) {
+                // Flash success outline
+                card.classList.add('border-success');
+                setTimeout(() => card.classList.remove('border-success'), 1000);
+            }
+        })
+        .catch(err => {
+            card.style.opacity = '1';
+            console.error('Save failed:', err);
+        });
+    }
+});
+</script>
+{% endblock %}
